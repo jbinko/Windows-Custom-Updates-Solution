@@ -75,8 +75,6 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy "$(TargetDir)*" "$(SolutionDir)Build"  /s /i /Y
-del "$(SolutionDir)Build\*.pdb"
-del "$(SolutionDir)Build\*.xml"</PostBuildEvent>
+    <PostBuildEvent>xcopy "$(TargetDir)*" "$(SolutionDir)Build"  /s /i /Y</PostBuildEvent>
   </PropertyGroup>
 </Project>
