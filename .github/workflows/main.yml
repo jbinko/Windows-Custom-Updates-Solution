@@ -26,7 +26,9 @@ jobs:
       run: msbuild WVDCUS.sln /p:Configuration=Release
  
     - name: Upload Artifact
-      uses: actions/upload-artifact@v1.0.0
+      uses: actions/upload-artifact@v2
       with:
-        name: Release
-        path: bin\Release\
+        name: WVDCUS
+        path: |
+          WVDCUS.Console/bin/Release/
+          WVDCUS.Service/bin/Release/
