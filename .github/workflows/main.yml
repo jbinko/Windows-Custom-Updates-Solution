@@ -24,13 +24,24 @@ jobs:
  
     - name: Build
       run: msbuild WVDCUS.sln /p:Configuration=Release
- 
+
+    - name: CopyConsole
+      uses: canastro/copy-file-action@master
+      with:
+        source: WVDCUS.Console/bin/Release/
+        target: /WVDCUS
+        
+    - name: CopyService
+      uses: canastro/copy-file-action@master
+      with:
+        source: WVDCUS.Service/bin/Release/
+        target: /WVDCUS
+
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
       with:
         name: WVDCUS
         path: |
-          WVDCUS.Console/bin/Release/*/*
-          WVDCUS.Service/bin/Release/*/*
+          WVDCUS/
           !**/*.pdb
           !**/*.xml
