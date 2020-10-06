@@ -30,7 +30,7 @@ jobs:
       with:
         name: WVDCUS
         path: |
-          WVDCUS.Console/bin/Release/*
-          WVDCUS.Service/bin/Release/*
+          WVDCUS.Console/bin/Release/*/*
+          WVDCUS.Service/bin/Release/*/*
           !**/*.pdb
           !**/*.xml
