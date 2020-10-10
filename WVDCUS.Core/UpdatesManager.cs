@@ -187,7 +187,7 @@ namespace WVDCUS.Core
         private const string TelemetryKeyDefault = null;
 
         private string UpdatesSearchQuery { get; set; } = UpdatesSearchQueryDefault;
-        private const string UpdatesSearchQueryDefault = "IsInstalled=0 AND IsPresent=0 AND CategoryIDs contains 'E6CF1350-C01B-414D-A61F-263D14D133B4' OR CategoryIDs contains 'E0789628-CE08-4437-BE74-2495B842F43B' OR CategoryIDs contains '0FA1201D-4330-4FA8-8AE9-B877473B6441'";
+        private const string UpdatesSearchQueryDefault = "( IsInstalled=0 AND IsPresent=0 AND IsHidden=0 AND CategoryIDs contains 'E6CF1350-C01B-414D-A61F-263D14D133B4' ) OR ( IsInstalled=0 AND IsPresent=0 AND IsHidden=0 AND CategoryIDs contains 'E0789628-CE08-4437-BE74-2495B842F43B' ) OR ( IsInstalled=0 AND IsPresent=0 AND IsHidden=0 AND CategoryIDs contains '0FA1201D-4330-4FA8-8AE9-B877473B6441' )";
 
         private Task _mainTask = null;
         private CancellationTokenSource _cts = new CancellationTokenSource();

@@ -35,6 +35,10 @@ and only if you see some gaps with those professional solutions you might want t
 - Built on top of Windows Update Agent API
 - Open source tool released under permissive free software MIT license. Anybody can benefit, anybody can contribute, no commercial restrictions.
 
+![Custom Events Results](DocImages/CustomEventsResults.jpg)
+
+![Telemetry Chart](DocImages/TelemetryChart.jpg)
+
 ## Prerequisites
 
 - Components of this solution require .NET Framework runtime (not .NET Core) to be installed on monitored hosts.
@@ -118,3 +122,157 @@ You can see detailed information about health of service, failures, informationa
 - Check information inside the log file to identify any potential issues
 
 ![Event Viewer](DocImages/EventViewer.jpg)
+
+## Query Telemetry Data
+
+Once the Windows Service is up and in running state it will start to generate Telemetry data and store
+them into provisioned `Application Insights` resource through `TelemetryKey` identifier.
+Because the `Application Insights` resource was connected with `Log Analytics Workspace` during provisioning process you might benefit from
+all features which are available in `Log Analytics Workspace` resource.
+For more details see: <https://docs.microsoft.com/en-us/azure/azure-monitor/log-query/log-query-overview>
+
+Telemetry data are stored as custom events and you might find them in the `customEvents` table.
+This allows you to view and analyze data from all hosts and see current state, health and informational messages about patch management from many perspectives
+and specified time range.
+For more details see: <https://docs.microsoft.com/en-us/azure/azure-monitor/log-query/get-started-queries>
+
+![Custom Query](DocImages/CustomEventsQuery.jpg)
+
+## Reporting
+
+Analyzing data through queries and multiple perspectives is very powerful feature.
+However, for daily monitoring you typically need to quickly see overall state of your hosts through
+some kind of reports.
+Fortunately, `Log Analytics Workspace` resource has such capability as well.
+
+You can create custom workbook with custom queries over telemetry data and render results through relevant visual representation.</br>
+For more details see: <https://docs.microsoft.com/en-us/azure/azure-monitor/platform/workbooks-overview>
+
+- Go to the `Application Insights` resource, section `Workbooks`
+- Create New Workbook
+- Copy/Paste query from below
+- Select Time Range for Telemetry Data. This value needs to be aligned with `CheckForUpdatesIntervalHours` settings. When Time Range is lower you might not see any data.
+- Click `Run Query` button to render chart from the latest data
+- In the Toolbar at the top click the `Done Editing` button
+- In the Toolbar at the top click the `Save` button and save the Workbook under some preferred name.
+
+Next time you can go directly into the `Workbooks` sections and click on just created Workbook to see the report with latest data.
+
+```
+let WVDCUS = customEvents 
+| where itemType == 'customEvent' and operation_Name == 'WVDCUS.Event';
+
+let WVDCUS_TelemetryStart = WVDCUS 
+| where name == 'TelemetryStart'
+| project MachineName = tostring(customDimensions.MachineName), operation_Id, timestamp
+| summarize arg_max(timestamp, *) by MachineName;
+
+let WVDCUS_Result = WVDCUS_TelemetryStart
+| join kind = innerunique customEvents on operation_Id
+| where name in ('NoUpdatesAvailable', 'UpdatesInstalledNoUpdates', 'UpdatesNotInstalledFailed', 'UpdatesInstalledRebootRequired', 'UpdatesInstalledAllOK', 'Error')
+| extend State=replace(@'NoUpdatesAvailable', @'Up to date', name)
+| extend State=replace(@'UpdatesInstalledNoUpdates', @'Up to date', State)
+| extend State=replace(@'UpdatesNotInstalledFailed', @'Failed', State)
+| extend State=replace(@'UpdatesInstalledRebootRequired', @'Reboot Required', State)
+| extend State=replace(@'UpdatesInstalledAllOK', @'Up to date', State)
+| extend State=replace(@'Error', @'Error', State)
+| project MachineName, Timestamp = timestamp1, State;
+
+WVDCUS_Result
+| project MachineName, State
+| summarize Count=count() by State
+| render piechart;
+```
+
+You might want to also see report showing current state of each host. You can extend just created Workbook with new report part.
+
+- Select just create Workbook
+- In the Toolbar at the top click the `Edit` button
+- In lower part you will see `Add` button. Click it and select `Add Query`.
+- Copy/Paste query from below
+- Select Time Range for Telemetry Data. This value needs to be aligned with `CheckForUpdatesIntervalHours` settings. When Time Range is lower you might not see any data.
+- Click `Run Query` button to see results from the latest data
+- In the Toolbar at the top click the `Done Editing` button
+- In the Toolbar at the top click the `Save` button
+
+```
+let WVDCUS = customEvents 
+| where itemType == 'customEvent' and operation_Name == 'WVDCUS.Event';
+
+let WVDCUS_TelemetryStart = WVDCUS 
+| where name == 'TelemetryStart'
+| project MachineName = tostring(customDimensions.MachineName), operation_Id, timestamp
+| summarize arg_max(timestamp, *) by MachineName;
+
+let WVDCUS_Result = WVDCUS_TelemetryStart
+| join kind = innerunique customEvents on operation_Id
+| where name in ('NoUpdatesAvailable', 'UpdatesInstalledNoUpdates', 'UpdatesNotInstalledFailed', 'UpdatesInstalledRebootRequired', 'UpdatesInstalledAllOK', 'Error')
+| extend State=replace(@'NoUpdatesAvailable', @'Up to date', name)
+| extend State=replace(@'UpdatesInstalledNoUpdates', @'Up to date', State)
+| extend State=replace(@'UpdatesNotInstalledFailed', @'Failed', State)
+| extend State=replace(@'UpdatesInstalledRebootRequired', @'Reboot Required', State)
+| extend State=replace(@'UpdatesInstalledAllOK', @'Up to date', State)
+| extend State=replace(@'Error', @'Error', State)
+| project MachineName, Timestamp = timestamp1, State;
+
+WVDCUS_Result
+| project MachineName, Timestamp, State
+```
+
+You can see combined example report - containing two parts on picture below.
+
+![Telemetry Chart](DocImages/TelemetryChart.jpg)
+
+## Alerting
+
+Finally, you might not have interest in checking reports daily.
+Maybe you want to do it only if this is really needed.
+In this case you might benefit from alerting mechanism which will notify you that some host needs your attention.
+
+Again, `Log Analytics Workspace` has such built-in capability.
+For more details see: <https://docs.microsoft.com/en-us/azure/azure-monitor/learn/tutorial-response>
+
+Here is how you can create Alert based on set of conditions.
+
+- Go to the `Application Insights` resource, section `Logs`, close window with Example queries
+- Select little Eye icon next to the `customEvents` table.
+- You should see sample of data from this table, click `See in query editor`
+- Click `New alert rule` button in the toolbar
+- In the window keep `Scope` as it is - should be pointing to correct `Application Insights` instance.
+- Focus now on `Condition` section, specify Time range value -  This value needs to be aligned with `CheckForUpdatesIntervalHours` settings. When Time Range is lower you might not see any data.
+- Copy/Paste query from below into `Search query` text box
+- Specify Alert logic, based on `Number of results`, `Greater than` and threshold value `0` - basically the alert will be triggered if some new record
+which is in state `Failed`, `Reboot Required`, `Error` was returned by query.
+- Provide value for Period in minutes - time span over which to execute the query.
+- Provide Frequency value - how frequently you would like to scan for new changes.
+- You need to create or select existing `Action Group`. Click the button `Select action group`. If needed, click to `Create action group`. See <https://docs.microsoft.com/en-us/azure/azure-monitor/platform/action-groups?WT.mc_id=Portal-Microsoft_Azure_Monitoring>.
+- You can customize email subject name
+- Provide Alert rule name and Description
+- Finalize Alert by clicking button `Create alert rule`
+
+```
+let WVDCUS = customEvents 
+| where itemType == 'customEvent' and operation_Name == 'WVDCUS.Event';
+
+let WVDCUS_TelemetryStart = WVDCUS 
+| where name == 'TelemetryStart'
+| project MachineName = tostring(customDimensions.MachineName), operation_Id, timestamp
+| summarize arg_max(timestamp, *) by MachineName;
+
+let WVDCUS_Result = WVDCUS_TelemetryStart
+| join kind = innerunique customEvents on operation_Id
+| where name in ('NoUpdatesAvailable', 'UpdatesInstalledNoUpdates', 'UpdatesNotInstalledFailed', 'UpdatesInstalledRebootRequired', 'UpdatesInstalledAllOK', 'Error')
+| extend State=replace(@'NoUpdatesAvailable', @'Up to date', name)
+| extend State=replace(@'UpdatesInstalledNoUpdates', @'Up to date', State)
+| extend State=replace(@'UpdatesNotInstalledFailed', @'Failed', State)
+| extend State=replace(@'UpdatesInstalledRebootRequired', @'Reboot Required', State)
+| extend State=replace(@'UpdatesInstalledAllOK', @'Up to date', State)
+| extend State=replace(@'Error', @'Error', State)
+| project MachineName, Timestamp = timestamp1, State;
+
+WVDCUS_Result
+| where State in ('Failed','Reboot Required', 'Error')
+| project MachineName, Timestamp, State
+```
+
+This should trigger action and attention when some host will fall into the one of the states `Failed`, `Reboot Required`, `Error`.
