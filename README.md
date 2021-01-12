@@ -39,6 +39,19 @@ and only if you see some gaps with those professional solutions you might want t
 
 ![Telemetry Chart](DocImages/TelemetryChart.jpg)
 
+## Changes
+
+### Version 1.0.1
+
+#### Telemetry data with Azure VM metadata
+
+Telemetry data now supports information coming from Azure platform (If the VM runs inside Azure Platform).
+Information about VM metadata like Azure VM name (VMResourceName), resource group name (ResourceGroupName) and subscription ID (SubscriptionId). Basically information where your Azure VM is defined.
+
+This allows to support richer filtering capabilities and identifying Azure VMs and where such VMs are defined.
+In cases when this hosting environment is NOT running inside Azure Platform,
+such information is not available in telemetry header.
+
 ## Prerequisites
 
 - Components of this solution require .NET Framework runtime (not .NET Core) to be installed on monitored hosts.
@@ -164,7 +177,7 @@ let WVDCUS = customEvents
 
 let WVDCUS_TelemetryStart = WVDCUS 
 | where name == 'TelemetryStart'
-| project MachineName = tostring(customDimensions.MachineName), operation_Id, timestamp
+| project MachineName = tostring(customDimensions.MachineName), operation_Id, timestamp, VMResourceName = tostring(customDimensions.VMResourceName), ResourceGroupName = tostring(customDimensions.ResourceGroupName), SubscriptionId = tostring(customDimensions.SubscriptionId)
 | summarize arg_max(timestamp, *) by MachineName;
 
 let WVDCUS_Result = WVDCUS_TelemetryStart
@@ -176,10 +189,10 @@ let WVDCUS_Result = WVDCUS_TelemetryStart
 | extend State=replace(@'UpdatesInstalledRebootRequired', @'Reboot Required', State)
 | extend State=replace(@'UpdatesInstalledAllOK', @'Up to date', State)
 | extend State=replace(@'Error', @'Error', State)
-| project MachineName, Timestamp = timestamp1, State;
+| project MachineName, Timestamp = timestamp1, State, VMResourceName, ResourceGroupName, SubscriptionId;
 
 WVDCUS_Result
-| project MachineName, State
+| project MachineName, State, VMResourceName, ResourceGroupName, SubscriptionId
 | summarize Count=count() by State
 | render piechart;
 ```
@@ -201,7 +214,7 @@ let WVDCUS = customEvents
 
 let WVDCUS_TelemetryStart = WVDCUS 
 | where name == 'TelemetryStart'
-| project MachineName = tostring(customDimensions.MachineName), operation_Id, timestamp
+| project MachineName = tostring(customDimensions.MachineName), operation_Id, timestamp, VMResourceName = tostring(customDimensions.VMResourceName), ResourceGroupName = tostring(customDimensions.ResourceGroupName), SubscriptionId = tostring(customDimensions.SubscriptionId)
 | summarize arg_max(timestamp, *) by MachineName;
 
 let WVDCUS_Result = WVDCUS_TelemetryStart
@@ -213,10 +226,10 @@ let WVDCUS_Result = WVDCUS_TelemetryStart
 | extend State=replace(@'UpdatesInstalledRebootRequired', @'Reboot Required', State)
 | extend State=replace(@'UpdatesInstalledAllOK', @'Up to date', State)
 | extend State=replace(@'Error', @'Error', State)
-| project MachineName, Timestamp = timestamp1, State;
+| project MachineName, Timestamp = timestamp1, State, VMResourceName, ResourceGroupName, SubscriptionId;
 
 WVDCUS_Result
-| project MachineName, Timestamp, State
+| project MachineName, Timestamp, State, VMResourceName, ResourceGroupName, SubscriptionId
 ```
 
 You can see combined example report - containing two parts on picture below.
@@ -256,7 +269,7 @@ let WVDCUS = customEvents
 
 let WVDCUS_TelemetryStart = WVDCUS 
 | where name == 'TelemetryStart'
-| project MachineName = tostring(customDimensions.MachineName), operation_Id, timestamp
+| project MachineName = tostring(customDimensions.MachineName), operation_Id, timestamp, VMResourceName = tostring(customDimensions.VMResourceName), ResourceGroupName = tostring(customDimensions.ResourceGroupName), SubscriptionId = tostring(customDimensions.SubscriptionId)
 | summarize arg_max(timestamp, *) by MachineName;
 
 let WVDCUS_Result = WVDCUS_TelemetryStart
@@ -268,11 +281,15 @@ let WVDCUS_Result = WVDCUS_TelemetryStart
 | extend State=replace(@'UpdatesInstalledRebootRequired', @'Reboot Required', State)
 | extend State=replace(@'UpdatesInstalledAllOK', @'Up to date', State)
 | extend State=replace(@'Error', @'Error', State)
-| project MachineName, Timestamp = timestamp1, State;
+| project MachineName, Timestamp = timestamp1, State, VMResourceName, ResourceGroupName, SubscriptionId;
 
 WVDCUS_Result
 | where State in ('Failed','Reboot Required', 'Error')
-| project MachineName, Timestamp, State
+| project MachineName, Timestamp, State, VMResourceName, ResourceGroupName, SubscriptionId
 ```
 
 This should trigger action and attention when some host will fall into the one of the states `Failed`, `Reboot Required`, `Error`.
+
+Alert email which you can receive to attract your attention.
+
+![Alert Email](DocImages/AlertEmail.jpg)
