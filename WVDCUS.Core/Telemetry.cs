@@ -20,10 +20,27 @@ namespace WVDCUS.Core
 
         private void SendTelemetrySessionHeader()
         {
+            var imdsDataTask = IMDSClient.GetInfoAsync();
+            imdsDataTask.Wait();
+            var imdsData = imdsDataTask.Result;
+
+            string vmResourceName = null;
+            string resourceGroupName = null;
+            string subscriptionId = null;
+
+            // If this runs in Azure, it should not be null
+            if (imdsData != null)
+            {
+                vmResourceName = imdsData.VMResourceName;
+                resourceGroupName = imdsData.ResourceGroupName;
+                subscriptionId = imdsData.SubscriptionId;
+            }
+
             var machineName = Environment.MachineName;
             Send("TelemetryStart", machineName,
                 Dns.GetHostEntry(machineName).AddressList[0].ToString(),
-                Environment.OSVersion.VersionString, Environment.Is64BitOperatingSystem);
+                Environment.OSVersion.VersionString, Environment.Is64BitOperatingSystem,
+                vmResourceName, resourceGroupName, subscriptionId);
         }
 
         public void SendInfoNoUpdatesAvailable()
@@ -86,13 +103,22 @@ namespace WVDCUS.Core
             _telemetry.TrackEvent(eventName);
         }
 
-        private void Send(string eventName, string machineName, string ip, string osVersion, bool is64BitOS)
+        private void Send(string eventName, string machineName, string ip, string osVersion, bool is64BitOS,
+            string vmResourceName, string resourceGroupName, string subscriptionId)
         {
             var properties = new Dictionary<string, string>();
             properties.Add("MachineName", machineName);
             properties.Add("IPAddress", ip);
             properties.Add("OSVersion", osVersion);
             properties.Add("Is64BitOS", is64BitOS.ToString());
+
+            if (!String.IsNullOrWhiteSpace(vmResourceName))
+                properties.Add("VMResourceName", vmResourceName);
+            if (!String.IsNullOrWhiteSpace(resourceGroupName))
+                properties.Add("ResourceGroupName", resourceGroupName);
+            if (!String.IsNullOrWhiteSpace(subscriptionId))
+                properties.Add("SubscriptionId", subscriptionId);
+
             _telemetry.TrackEvent(eventName, properties);
         }
 
