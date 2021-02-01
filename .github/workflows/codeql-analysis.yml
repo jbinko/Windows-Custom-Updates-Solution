@@ -58,12 +58,12 @@ jobs:
     #    and modify them (or add more) to build your code if your project
     #    uses a compiled language
 
-    - run: |
-       make bootstrap
-       make release
+    #- run: |
+    #   make bootstrap
+    #   make release
               
     - name: Setup MSBuild Path
-      uses: microsoft/setup-msbuild@v1.0.0
+      uses: microsoft/setup-msbuild@v1.0.2
       env:
         ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
        
