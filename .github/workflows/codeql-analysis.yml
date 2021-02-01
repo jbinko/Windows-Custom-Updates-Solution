@@ -49,10 +49,30 @@ jobs:
 
     # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
     # If this step fails, then you should remove it and run the build manually (see below)
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v1
+    #- name: Autobuild
+    #  uses: github/codeql-action/autobuild@v1
 
-    # ℹ️ Command-line programs to run using the OS shell.
+    - name: Setup MSBuild Path
+      uses: microsoft/setup-msbuild@v1.0.0
+      env:
+        ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
+       
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v1.0.2
+      env:
+        ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
+     
+    - name: Restore NuGet Packages
+      run: nuget restore WVDCUS.sln
+      env:
+        ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
+ 
+    - name: Build
+      run: msbuild WVDCUS.sln /p:Configuration=Release
+      env:
+        ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
+
+# ℹ️ Command-line programs to run using the OS shell.
     # 📚 https://git.io/JvXDl
 
     # ✏️ If the Autobuild fails above, remove it and uncomment the following three lines
